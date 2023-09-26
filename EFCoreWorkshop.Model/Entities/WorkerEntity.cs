@@ -6,6 +6,6 @@ public class WorkerEntity
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public DateTime Hired { get; set; }
-    
-    public List<TaskEntity> TaskEntities { get; set; }
+
+    public List<TaskEntity> TaskEntities { get; set; } = new();
 }

@@ -49,7 +49,7 @@ public sealed class Services<TContext> : IAsyncDisposable where TContext : DbCon
         var dbName = typeof(TContext).Name.ToLower() + "_" + Interlocked.Increment(ref _nextDb);
         var connectionString = @$"Server=localhost,{port.ToString()};Database={dbName};User Id=sa;Password=Mssql12345;Trust Server Certificate=True";
         
-        await Console.Error.WriteLineAsync(connectionString);
+        Console.WriteLine(connectionString);
 
         var builder = Host.CreateDefaultBuilder();
         builder.ConfigureServices(collection =>
@@ -66,6 +66,9 @@ public sealed class Services<TContext> : IAsyncDisposable where TContext : DbCon
                     .LogTo((x, _) => x == RelationalEventId.CommandExecuting, Console.WriteLine)
                     .UseLoggerFactory(new LoggerFactory(new[] { new DebugLoggerProvider() }));
             }, 16);
+        }).ConfigureLogging(options =>
+        {
+            options.ClearProviders().AddConsole();
         });
         var host = builder.Build();
         await host.StartAsync();
