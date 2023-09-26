@@ -7,5 +7,5 @@ public class WorkerEntity
     public string LastName { get; set; }
     public DateTime Hired { get; set; }
     
-    public List<TaskEntity> Tasks { get; set; }
+    public List<TaskEntity> TaskEntities { get; set; }
 }
