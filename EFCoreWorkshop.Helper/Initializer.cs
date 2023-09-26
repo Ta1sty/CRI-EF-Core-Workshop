@@ -2,31 +2,34 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Debug;
 using IContainer = DotNet.Testcontainers.Containers.IContainer;
 
-namespace EFCoreWorkshop.Migration;
+namespace EFCoreWorkshop.Helper;
 
 public sealed class Services<TContext> : IAsyncDisposable where TContext : DbContext
 {
     private static int _nextDb = 0;
     
-    private readonly ServiceProvider _serviceProvider;
     private readonly IContainer _container;
-    
+    private readonly IHost _host;
+
     public readonly AsyncServiceScope Scope;
     public readonly IServiceProvider ServiceProvider;
     public readonly TContext Context;
 
-    private Services(IContainer container, ServiceProvider serviceProvider)
+    private Services(IHost host, IContainer container)
     {
+        _host = host;
         _container = container;
-        _serviceProvider = serviceProvider;
-        Scope = _serviceProvider.CreateAsyncScope();
+        Scope = _host.Services.CreateAsyncScope();
         ServiceProvider = Scope.ServiceProvider;
         Context = ServiceProvider.GetRequiredService<TContext>();
     }
+
+    public async Task WaitForShutdownAsync() => await _host.WaitForShutdownAsync();
 
     public static async Task<Services<TContext>> Create()
     {
@@ -47,28 +50,33 @@ public sealed class Services<TContext> : IAsyncDisposable where TContext : DbCon
         var connectionString = @$"Server=localhost,{port.ToString()};Database={dbName};User Id=sa;Password=Mssql12345;Trust Server Certificate=True";
         
         await Console.Error.WriteLineAsync(connectionString);
-        
-        var collection = new ServiceCollection();
-        collection.AddDbContextPool<TContext>(options =>
+
+        var builder = Host.CreateDefaultBuilder();
+        builder.ConfigureServices(collection =>
         {
-            options.UseSqlServer(connectionString, sqlServerOptions =>
-                {
-                    sqlServerOptions.MigrationsAssembly(typeof(Services<TContext>).Assembly.FullName);
-                    sqlServerOptions.MigrationsHistoryTable("__MigrationsHistory");
-                    sqlServerOptions.CommandTimeout((int)TimeSpan.FromMinutes(10).TotalSeconds);
-                })
-                .EnableSensitiveDataLogging()
-                .LogTo((x,_) => x == RelationalEventId.CommandExecuting, Console.WriteLine)
-                .UseLoggerFactory(new LoggerFactory(new []{new DebugLoggerProvider()}));
-        }, 16);
-        var services = collection.BuildServiceProvider();
-        return new Services<TContext>(container,services);
+            collection.AddDbContextPool<TContext>(options =>
+            {
+                options.UseSqlServer(connectionString, sqlServerOptions =>
+                    {
+                        sqlServerOptions.MigrationsAssembly("EFCoreWorkshop.Migrations");
+                        sqlServerOptions.MigrationsHistoryTable("__MigrationsHistory");
+                        sqlServerOptions.CommandTimeout((int)TimeSpan.FromMinutes(10).TotalSeconds);
+                    })
+                    .EnableSensitiveDataLogging()
+                    .LogTo((x, _) => x == RelationalEventId.CommandExecuting, Console.WriteLine)
+                    .UseLoggerFactory(new LoggerFactory(new[] { new DebugLoggerProvider() }));
+            }, 16);
+        });
+        var host = builder.Build();
+        await host.StartAsync();
+        return new Services<TContext>(host, container);
     }
 
     public async ValueTask DisposeAsync()
     {
         await Scope.DisposeAsync();
-        await _serviceProvider.DisposeAsync();
+        await _host.StopAsync();
+        _host.Dispose();
         await _container.StopAsync();
         await _container.DisposeAsync();
     }
