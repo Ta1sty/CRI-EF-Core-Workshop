@@ -1,4 +1,6 @@
-﻿namespace EFCoreWorkshop.Model.Entities;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace EFCoreWorkshop.Model.Entities;
 
 public class TaskEntity
 {
@@ -8,7 +10,8 @@ public class TaskEntity
     public string Description { get; set; }
     public DateTime Created { get; set; }
     public TimeSpan Length { get; set; }
-    
+    public byte[] Version { get; set; }
+
     public Guid WorkerId { get; set; }
     public WorkerEntity WorkerEntity { get; set; }
 }

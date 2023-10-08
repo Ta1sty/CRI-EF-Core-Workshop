@@ -6,6 +6,7 @@ public class WorkerEntity
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public DateTime Hired { get; set; }
-
+    public DateTime? EndOfContract { get; set; }
+    public byte[] Version { get; set; }
     public List<TaskEntity> TaskEntities { get; set; } = new();
 }

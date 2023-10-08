@@ -1,4 +1,5 @@
-﻿using DotNet.Testcontainers.Builders;
+﻿using System.Runtime.InteropServices;
+using DotNet.Testcontainers.Builders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,7 +37,7 @@ public sealed class Services<TContext> : IAsyncDisposable where TContext : DbCon
         const int port = 23564;
         var container = new ContainerBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2019-latest")
-            .WithName("TEST-Container")
+            .WithName("TEST-Container-" + Guid.NewGuid())
             .WithCleanUp(true)
             .WithAutoRemove(true)
             .WithEnvironment("ACCEPT_EULA", "Y")
@@ -48,9 +49,8 @@ public sealed class Services<TContext> : IAsyncDisposable where TContext : DbCon
         
         var dbName = typeof(TContext).Name.ToLower() + "_" + Interlocked.Increment(ref _nextDb);
         var connectionString = @$"Server=localhost,{port.ToString()};Database={dbName};User Id=sa;Password=Mssql12345;Trust Server Certificate=True";
-        
-        Console.WriteLine(connectionString);
 
+        Console.WriteLine(connectionString);
         var builder = Host.CreateDefaultBuilder();
         builder.ConfigureServices(collection =>
         {
