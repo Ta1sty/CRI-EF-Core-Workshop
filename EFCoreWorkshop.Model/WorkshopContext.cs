@@ -20,24 +20,34 @@ public class WorkshopContext : DbContext
     {
         base.OnConfiguring(optionsBuilder);
     }
-
-    #endregion
-
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<WorkerEntity>(entity =>
         {
             entity.HasKey(x => x.WorkerId);
             entity.Property(x => x.WorkerId).ValueGeneratedNever();
-            entity.HasIndex(x => x.Hired);
-            entity.HasIndex(x => x.EndOfContract).IsUnique();
             entity.Property(x => x.Version).IsRowVersion();
+            
+            entity.HasIndex(x => x.Hired);
+            entity.HasIndex(x => x.EndOfContract);
         });
         modelBuilder.Entity<TaskEntity>(entity =>
         {
             entity.HasKey(x => x.TaskId);
             entity.Property(x => x.TaskId).ValueGeneratedNever();
             entity.Property(x => x.Version).IsRowVersion();
+
+            entity.HasIndex(x => x.Created);
+            entity.HasIndex(x => new { x.Created, x.Length });
+
+            entity.HasOne(x => x.WorkerEntity)
+                .WithMany(x => x.TaskEntities)
+                .HasForeignKey(x => x.WorkerId)
+                .HasPrincipalKey(x => x.WorkerId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
-    }   
+    }
+
+    #endregion
 }
