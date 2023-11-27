@@ -1,11 +1,11 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.IO.Pipes;
 using DotNet.Testcontainers.Builders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Debug;
 using IContainer = DotNet.Testcontainers.Containers.IContainer;
 
 namespace EFCoreWorkshop.Helper;
@@ -16,24 +16,62 @@ public sealed class Services<TContext> : IAsyncDisposable where TContext : DbCon
     
     private readonly IContainer _container;
     private readonly IHost _host;
-
+    private readonly Process? _consoleProcess;
+    private readonly Stream? _consolePipe;
+    private readonly StreamWriter? _consoleWriter;
+    
     public readonly AsyncServiceScope Scope;
     public readonly IServiceProvider ServiceProvider;
     public readonly TContext Context;
 
-    private Services(IHost host, IContainer container)
+    private Services(IHost host, IContainer container, Process? consoleProcess, Stream? consolePipe, StreamWriter? consoleWriter)
     {
         _host = host;
         _container = container;
+        _consolePipe = consolePipe;
+        _consoleWriter = consoleWriter;
+        _consoleProcess = consoleProcess;
         Scope = _host.Services.CreateAsyncScope();
         ServiceProvider = Scope.ServiceProvider;
         Context = ServiceProvider.GetRequiredService<TContext>();
+    }
+
+    private static (Process?,Stream?,StreamWriter?) CreateConsoleWindow()
+    {
+#if DEBUG
+        var pipeName = Guid.NewGuid().ToString();
+        var consolePipe = new NamedPipeServerStream(pipeName, PipeDirection.Out);
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "EFCoreWorkshop.Console.exe",
+            UseShellExecute = true,
+            CreateNoWindow = false,
+            Arguments = pipeName
+        };
+
+        var consoleProcess = new Process { StartInfo = startInfo };
+        if (!consoleProcess.Start()) throw new Exception("Failed to open console window");
+        consolePipe.WaitForConnection();
+        var consoleWriter = new StreamWriter(consolePipe, leaveOpen:true)
+        {
+            AutoFlush = true
+        };
+        consoleWriter.WriteLine("Connected to DebugConsole");
+
+        Console.SetOut(consoleWriter);
+        Console.SetError(consoleWriter);
+        
+        return (consoleProcess, consolePipe, consoleWriter);
+#else
+        return (null, null, null);
+#endif
     }
 
     public async Task WaitForShutdownAsync() => await _host.WaitForShutdownAsync();
 
     public static async Task<Services<TContext>> Create()
     {
+        var debugConsole = CreateConsoleWindow();
         const int port = 23564;
         var container = new ContainerBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2019-latest")
@@ -63,16 +101,17 @@ public sealed class Services<TContext> : IAsyncDisposable where TContext : DbCon
                         sqlServerOptions.CommandTimeout((int)TimeSpan.FromMinutes(10).TotalSeconds);
                     })
                     .EnableSensitiveDataLogging()
-                    .LogTo((x, _) => x == RelationalEventId.CommandExecuting, Console.WriteLine)
-                    .UseLoggerFactory(new LoggerFactory(new[] { new DebugLoggerProvider() }));
+                    .LogTo((x, _) => x == RelationalEventId.CommandExecuting || x == RelationalEventId.CommandExecuted, Console.WriteLine);
             }, 16);
         }).ConfigureLogging(options =>
         {
-            options.ClearProviders().AddConsole();
+            options.ClearProviders()
+                .AddConsole()
+                .AddDebug();
         });
         var host = builder.Build();
         await host.StartAsync();
-        return new Services<TContext>(host, container);
+        return new Services<TContext>(host, container, debugConsole.Item1, debugConsole.Item2, debugConsole.Item3);
     }
 
     public async ValueTask DisposeAsync()
@@ -82,5 +121,10 @@ public sealed class Services<TContext> : IAsyncDisposable where TContext : DbCon
         _host.Dispose();
         await _container.StopAsync();
         await _container.DisposeAsync();
+
+#if DEBUG
+        if (_consoleWriter is not null) await _consoleWriter.DisposeAsync();
+        if (_consolePipe is not null) await _consolePipe.DisposeAsync();
+#endif
     }
 }

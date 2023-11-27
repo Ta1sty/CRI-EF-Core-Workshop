@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EFCoreWorkshop.Migrations",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EFCoreWorkshop.Helper", "EFCoreWorkshop.Helper\EFCoreWorkshop.Helper.csproj", "{03381F6E-C246-4602-BC35-57D83B294A2C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EFCoreWorkshop.Console", "EFCoreWorkshop.Console\EFCoreWorkshop.Console.csproj", "{2A4863F1-F085-4164-822F-88F81AB02B80}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{03381F6E-C246-4602-BC35-57D83B294A2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03381F6E-C246-4602-BC35-57D83B294A2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{03381F6E-C246-4602-BC35-57D83B294A2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A4863F1-F085-4164-822F-88F81AB02B80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A4863F1-F085-4164-822F-88F81AB02B80}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A4863F1-F085-4164-822F-88F81AB02B80}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A4863F1-F085-4164-822F-88F81AB02B80}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

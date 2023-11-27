@@ -19,16 +19,15 @@ public class Queries : TestBase
             worker => worker.Hired > DateTime.UtcNow && (worker.EndOfContract == null || worker.EndOfContract < DateTime.UtcNow);
 
         // Can now pass it as argument to a query where clause
-        var overdueTasks = await Context.Tasks
-            .Where(taskOverdueExpr).ToListAsync();
         
+
         // Can also pass this as an inner argument
-        var activeWorkersWithOverdueTasks = await Context.Workers.Where(workerActiveExpr)
-            .Where(worker => worker.TaskEntities.AsQueryable().Any(taskOverdueExpr)).ToListAsync();
         
+
         // You can also dynamically build search expressions such as name matching for example Richard Jonas Schmitt should match Richard Schmitt and Jonas Schmitt
         // and that for any number or name parts, on building such expressions, is a matter for another time
     }
+    
     [Test]
     public async Task Include()
     {
@@ -59,13 +58,17 @@ public class Queries : TestBase
     [Test]
     public async Task AggregateOps()
     {
-        // All operations that project a sequence of object onto a singluar value can be called aggregate operations
+        // All operations that project a sequence of objects onto a singular value can be called aggregate operations
         // These are First(OrDefault),Single(OrDefault),Last(OrDefault),Min,Max,Avg etc
+        
     }
 
     [Test]
     public async Task AsyncEnumerable()
     {
+        // You can use IAsyncEnumerable to avoid retrieving too many entities into RAM
+        // especially useful if you need to retrieve data, and only in a few cases have to execute an update
+        // you can use await foreach() to iterate over such an enumerable
         
     }
 }

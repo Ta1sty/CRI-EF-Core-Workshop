@@ -19,6 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\EFCoreWorkshop.Console\EFCoreWorkshop.Console.csproj" />
       <ProjectReference Include="..\EFCoreWorkshop.Helper\EFCoreWorkshop.Helper.csproj" />
       <ProjectReference Include="..\EFCoreWorkshop.Model\EFCoreWorkshop.Model.csproj" />
     </ItemGroup>
